@@ -64,8 +64,6 @@ int main(int argc, char *argv[])
         else AgentPopulation::beta = 0.2;
         if(node["mortality"]) AgentPopulation::mortality_rate = node["mortality"].as<double>();
         else AgentPopulation::mortality_rate = 0.1;
-        if(node["life_expectancy"]) AgentPopulation::life_expectancy = node["life_expectancy"].as<int>();
-        else AgentPopulation::life_expectancy = 30;
         if(node["reproduction_rate"]) AgentPopulation::reproduction_rate = node["reproduction_rate"].as<double>();
         else AgentPopulation::reproduction_rate = 0.3;
         //Fin lire YAML
@@ -97,14 +95,7 @@ int main(int argc, char *argv[])
             (mode == "read")? &AgentPopulation::move_type_read : &AgentPopulation::move_type_written
         };
 
-        Behavior<AgentPopulation> die_behavior{
-            &AgentPopulation::die_behave
-        };
-
-        Behavior<AgentPopulation> birth_behavior{
-            &AgentPopulation::give_birth
-        };
-        
+		fpmas::model::IdleBehavior die_behavior;
         
 
         // Builds a new MoveAgentGroup associated to move_behavior
@@ -112,37 +103,35 @@ int main(int argc, char *argv[])
 
         auto& die_group = model.buildGroup(DIE, die_behavior);      
 
-        auto& birth_group = model.buildGroup(BIRTH, birth_behavior);  
-
 
         fpmas::io::FileOutput out("output.csv");
 
         // A Watcher used to count how many agent are infected on all LOCAL agents
-        fpmas::io::Watcher<int> cptAgentInfected = [&move_group] (){
-            int cptAgentInfected = 0;
-            for(auto agent : fpmas::utils::ptr_wrapper_cast<AgentPopulation>(move_group.localAgents())){
-                if(agent->getState() == State::Infected && !agent->getDead()) cptAgentInfected++;
+        fpmas::io::Watcher<int> count_infected = [&move_group] (){
+            int infected = 0;
+            for(auto agent : move_group.localAgents()){
+                if(((AgentPopulation*) agent)->getState() == INFECTED) infected++;
             }
-            return cptAgentInfected;
+            return infected;
         };
 
-        fpmas::io::Watcher<int> cptAgentSusceptible = [&move_group] (){
-            int cptAgentSusceptible = 0;
-            for(auto agent : fpmas::utils::ptr_wrapper_cast<AgentPopulation>(move_group.localAgents())){
-                if(agent->getState() == State::Susceptible && !agent->getDead()) cptAgentSusceptible++;
+        fpmas::io::Watcher<int> count_susceptible = [&move_group] (){
+            int susceptible = 0;
+            for(auto agent : move_group.localAgents()){
+                if(((AgentPopulation*) agent)->getState() == SUSCEPTIBLE) susceptible++;
             }
-            return cptAgentSusceptible;
+            return susceptible;
         };
 
-        fpmas::io::Watcher<int> cptAgentRemoved = [&move_group] (){
-            int cptAgentRemoved = 0;
+        fpmas::io::Watcher<int> count_removed = [&move_group] (){
+            int removed = 0;
             for(auto agent : fpmas::utils::ptr_wrapper_cast<AgentPopulation>(move_group.localAgents())){
-                if(agent->getState() == State::Recovered && !agent->getDead()) cptAgentRemoved++;
+                if(((AgentPopulation*) agent)->getState() == RECOVERED) removed++;
             }
-            return cptAgentRemoved;
+            return removed;
         };
 
-        fpmas::io::Watcher<int> cptAgentDead = [&die_group] (){
+        fpmas::io::Watcher<int> count_dead = [&die_group] (){
             return die_group.localAgents().size();
         };
 
@@ -160,7 +149,7 @@ int main(int argc, char *argv[])
         //Initializes GridAgentExamples on the grid (distribued process)/
         //All agents are automatically added on to the move_group
         GridAgentBuilder<>().build(
-            model,{move_group, birth_group}, factory, mapping
+            model, {move_group}, factory, mapping
         );
         model.graph().synchronize();
         
@@ -174,14 +163,14 @@ int main(int argc, char *argv[])
 			Reduce<int>,
             Reduce<int> 
 		> csv_output( model.getMpiCommunicator(), 0 /* root process */, out,
-					{"time", [&model] () {
+					{"T", [&model] () {
 						// Current time step
 						return fpmas::scheduler::time_step(model.runtime().currentDate());
 						}},
-                    {"NbAgentSusceptible", cptAgentSusceptible},
-					{"NbAgentInfected", cptAgentInfected},
-                    {"NbAgentRemoved",cptAgentRemoved},
-                    {"NbAgentDead",cptAgentDead}
+                    {"S", count_susceptible},
+					{"I", count_infected},
+                    {"R", count_removed},
+                    {"D", count_dead}
 		);
         
         //Select nb_infected_agent_begin random agent and put him on state infected
@@ -201,11 +190,11 @@ int main(int argc, char *argv[])
             fpmas::random::random_device r2d2;
             fpmas::random::UniformIntDistribution <> numeroAgent(0,move_group.localAgents().size()-1);//Entre 0 et le nombre d'agent possible
             AgentPopulation *agent = fpmas::utils::ptr_wrapper_cast<AgentPopulation>(move_group.localAgents().at(numeroAgent(r2d2)));
-            while(agent->getState() == State::Infected){
+            while(agent->getState() == INFECTED){
                 fpmas::random::UniformIntDistribution <> numeroAgent(0,move_group.localAgents().size()-1);//Entre 0 et le nombre d'agent possible
                 agent = fpmas::utils::ptr_wrapper_cast<AgentPopulation>(move_group.localAgents().at(numeroAgent(r2d2)));
             }
-            agent->setState(State::Infected);
+            agent->setState(INFECTED);
         }
         
         
@@ -219,11 +208,9 @@ int main(int argc, char *argv[])
         
         model.scheduler().schedule(0.1, 1, move_group.jobs());
 
-        model.scheduler().schedule(0.2, 1, birth_group.jobs());
+        model.scheduler().schedule(0.2, 1, csv_output.job());
 
-        model.scheduler().schedule(0.3, 1, csv_output.job());
-
-        model.scheduler().schedule(0.4, 1, die_group.jobs());
+        model.scheduler().schedule(0.3, 1, die_group.jobs());
 
         // Runs the model for 10 iterations
         model.runtime().run(runtime);

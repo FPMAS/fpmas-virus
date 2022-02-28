@@ -4,6 +4,7 @@ project(fpmas-virus)
 
 find_package(fpmas 1.2 REQUIRED)
 
+include_directories(include)
 add_executable(${PROJECT_NAME}
 	main.cpp
 	src/agent.cpp)
