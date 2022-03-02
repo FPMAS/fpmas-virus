@@ -12,7 +12,6 @@ const MooreRange<MooreGrid<>> AgentPopulation::range(1);
 double AgentPopulation::alpha = 0.0;
 double AgentPopulation::beta = 0.0;
 double AgentPopulation::mortality_rate = 0;
-double AgentPopulation::reproduction_rate = 0.0;
 
 AgentPopulation::AgentPopulation() : AgentPopulation(SUSCEPTIBLE) {
 }
@@ -110,8 +109,8 @@ void AgentPopulation::dying(){
 	}
 	
 	if(this->getState() == DEAD){
-		this->model()->getGroup(DIE).add(this);
-		this->model()->getGroup(MOVE).remove(this);
+		this->model()->getGroup(DEAD_GROUP).add(this);
+		this->model()->getGroup(ALIVE_GROUP).remove(this);
 	}
 }
 

@@ -1,0 +1,10 @@
+num_steps: 100
+agent_count: 1000
+init_infected: 1
+infection_mode: READ
+grid:
+  width: 50
+  height: 50
+alpha: 0.035
+beta: 0.4
+mortality: 0.005

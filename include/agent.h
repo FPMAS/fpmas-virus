@@ -4,7 +4,7 @@
 
 using namespace fpmas::model;
 
-FPMAS_DEFINE_GROUPS(MOVE, DIE);
+FPMAS_DEFINE_GROUPS(ALIVE_GROUP, DEAD_GROUP);
 
 enum State { SUSCEPTIBLE, INFECTED, RECOVERED, DEAD};
 
@@ -19,8 +19,6 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 		static double alpha;
 		static double beta;
 		static double mortality_rate;
-		static double reproduction_rate;
-		
 
 		FPMAS_MOBILITY_RANGE(range);
 		FPMAS_PERCEPTION_RANGE(range);

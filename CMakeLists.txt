@@ -7,7 +7,9 @@ find_package(fpmas 1.2 REQUIRED)
 include_directories(include)
 add_executable(${PROJECT_NAME}
 	main.cpp
-	src/agent.cpp)
+	src/agent.cpp
+	src/output.cpp
+	)
 
 include(FetchContent)
 FetchContent_Declare(
