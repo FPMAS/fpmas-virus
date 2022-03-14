@@ -1,12 +1,9 @@
+#include <algorithm>
 #include <cstdlib>
+#include <fpmas/random/distribution.h>
+#include <fpmas/utils/log.h>
 
-#include "agent.h"
-
-double full_random(int min, int max){
-	fpmas::random::random_device rd;
-	fpmas::random::UniformRealDistribution<> real_distribution(min,max);
-	return real_distribution(rd);
-}
+#include "model.h"
 
 const MooreRange<MooreGrid<>> AgentPopulation::range(1);
 double AgentPopulation::alpha = 0.0;
@@ -17,35 +14,44 @@ AgentPopulation::AgentPopulation() : AgentPopulation(SUSCEPTIBLE) {
 }
 
 AgentPopulation::AgentPopulation(State state)
-	: state(state) {}
+	: state(state) {
+	}
 
 void AgentPopulation::move_type_read() {
-	//printAgent();
-	if(this->getState() == SUSCEPTIBLE) {
+	// Local state
+	if(this->state == SUSCEPTIBLE) {
 		std::size_t infected_neighbors = 0;
 		for(auto agent : this->perceptions<AgentPopulation>())
+			// Read ghost
 			if(agent->getState() == INFECTED)
 				infected_neighbors++;
 		float infection_probability = 1 - std::pow(1-beta, infected_neighbors);
 
 		//Random
-		float random = full_random(0,1);
+		float random = this->random();
 		if(random <  infection_probability){
-			this->setState(INFECTED); //Acquire in setState	
+			FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
+					"Agent %s gets infected", FPMAS_C_STR(this->node()->getId())
+					);
+			this->setState(INFECTED); // Write local
 		}
-	} else if(this->getState() == INFECTED){
+	} else if(this->state == INFECTED){
 		this->recovery(); 
 	}
 	dying();
 
 	// Gets GraphCells currently in the agent mobility field.
-	// In this examples, this represents the 8 Moore neighbor cells, and the
-	// current location cell.
-	auto mobility_field = this->mobilityField();
+	// Here it represents the 8 Moore neighbor cells, and the current location
+	// cell.
+	auto cell = this->mobilityField()
+		.sort() // Sort cells according to their position: the mobility field is in the same order independently from the current distribution
+		.random(this->rd()); // Selects an item independently from the current distribution
 
-	// Selects a random GridCell from the mobility field
-	auto cell = mobility_field.random();
-
+	FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
+			"Agent %s moves to %s",
+			FPMAS_C_STR(this->node()->getId()),
+			FPMAS_C_STR(cell->location())
+			);
 	// Moves to this cell
 	this->moveTo(cell);
 }
@@ -59,7 +65,7 @@ void AgentPopulation::move_type_written(){
 			for(auto agent : this->perceptions<AgentPopulation>()){
 				if(agent->getState() == SUSCEPTIBLE){
 					//Random
-					float random = full_random(0,1);
+					float random = this->random();
 
 					if(random < beta){
 						agent->setState(INFECTED);
@@ -71,12 +77,11 @@ void AgentPopulation::move_type_written(){
 	
 
 		// Gets GraphCells currently in the agent mobility field.
-		// In this examples, this represents the 8 Moore neighbor cells, and the
-		// current location cell.
-		auto mobility_field = this->mobilityField();
-
-		// Selects a random GridCell from the mobility field
-		auto cell = mobility_field.random();
+		// Here it represents the 8 Moore neighbor cells, and the current location
+		// cell.
+		auto cell = this->mobilityField()
+			.sort() // Sort cells according to their position: the mobility field is in the same order independently from the current distribution
+			.random(this->rd()); // Selects an item independently from the current distribution
 
 		// Moves to this cell
 		this->moveTo(cell);
@@ -84,33 +89,40 @@ void AgentPopulation::move_type_written(){
 }
 
 State AgentPopulation::getState() {
-	fpmas::model::ReadGuard read(this);	
-	return this->state;
+	const AgentPopulation* ghost
+		= (const AgentPopulation*) (this->node()->mutex()->read().get());
+	State s = ghost->state;
+	this->node()->mutex()->releaseRead();
+	return s;
 }
 
 void AgentPopulation::setState(State s){
-	fpmas::model::AcquireGuard acquire(this);
+	this->node()->mutex()->acquire();
 	this->state = s;
+	this->node()->mutex()->releaseAcquire();
 }
 
 void AgentPopulation::recovery(){
-	float random = full_random(0,1);
+	float random = this->random();
 	if(random < alpha){
+		FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
+				"Agent %s recovers", FPMAS_C_STR(this->node()->getId())
+				);
 	 	this->setState(RECOVERED); //Acquire dans le setState
 	} 
 }
 
 void AgentPopulation::dying(){
-	if(this->getState() == INFECTED){
-		float random = full_random(0,1);
+	if(this->state == INFECTED){
+		float random = this->random();
 		if(random < mortality_rate){
+			FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
+					"Agent %s dies", FPMAS_C_STR(this->node()->getId())
+					);
 			this->setState(DEAD);
+			this->model()->getGroup(DEAD_GROUP).add(this);
+			this->model()->getGroup(ALIVE_GROUP).remove(this);
 		}
-	}
-	
-	if(this->getState() == DEAD){
-		this->model()->getGroup(DEAD_GROUP).add(this);
-		this->model()->getGroup(ALIVE_GROUP).remove(this);
 	}
 }
 
@@ -120,7 +132,8 @@ void AgentPopulation::to_json(nlohmann::json& j, const AgentPopulation * agent){
 }
 
 AgentPopulation* AgentPopulation::from_json(const nlohmann::json& j){
-	return new AgentPopulation(
+	auto agent = new AgentPopulation(
 		j.at("s").get<State>()
 	);
+	return agent;
 }

@@ -2,13 +2,17 @@
 #include "output.h"
 #include "fpmas.h"
 #include "yaml-cpp/yaml.h"
+#include <fpmas/communication/communication.h>
+#include <fpmas/io/output.h>
+#include <fpmas/scheduler/scheduler.h>
+#include <fpmas/utils/macros.h>
 
 using fpmas::synchro::HardSyncMode;
 using fpmas::synchro::HardSyncModeWithGhostLink;
 using fpmas::synchro::GhostMode;
 using fpmas::synchro::GlobalGhostMode;
 
-#define SYNC_MODE HardSyncModeWithGhostLink
+#define SYNC_MODE GlobalGhostMode
 
 #define AGENT_TYPES fpmas::model::GridCell::JsonBase, AgentPopulation::JsonBase
 
@@ -21,16 +25,16 @@ int main(int argc, char *argv[])
     fpmas::init(argc, argv);
     {
         YAML::Node config = YAML::LoadFile(argv[1]);
-		fpmas::io::FileOutput file("output.csv");
+		fpmas::io::FileOutput file("output." + std::to_string(fpmas::communication::WORLD.getSize()) + ".csv");
 
-		VirusModel<HardSyncMode> model(config);
+		VirusModel<SYNC_MODE> model(config);
 		ModelOutput output(model, file);
 
         //Schedules AgentPopulation exectution
         model.scheduler().schedule(0.3, 1, output.job());
 
         // Runs the model for 10 iterations
-        model.runtime().run(config["num_steps"].as<fpmas::scheduler::TimeStep>());
+		model.runtime().run(config["num_steps"].as<fpmas::scheduler::TimeStep>());
     }
     fpmas::finalize();
     return 0;

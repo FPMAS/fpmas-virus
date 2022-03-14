@@ -1,5 +1,7 @@
 #include "agent.h"
 #include "config.h"
+#include <fpmas/api/model/spatial/grid.h>
+#include <fpmas/model/spatial/grid.h>
 #include <fpmas/random/random.h>
 
 using namespace fpmas::model;
@@ -56,22 +58,24 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 			config["agent_count"].as<std::size_t>()
 			);
 
-
 	//Build agent instances with a 'new AgentPopulation' statement
 	DefaultSpatialAgentFactory<AgentPopulation> factory; 
  
+	GridAgentBuilder<> agent_builder;
 	//Initializes GridAgentExamples on the grid (distribued process)/
 	//All agents are automatically added on to the move_group
-	GridAgentBuilder<>().build(
+	agent_builder.build(
 			*this, {move_group}, factory, mapping
 			);
- 
-	auto init_infected =  fpmas::random::split_sample(
-			this->getMpiCommunicator(), move_group.localAgents(),
-			config["init_infected"].as<std::size_t>()
+	// Initializes infected agents
+	agent_builder.init_sample(
+			config["init_infected"].as<std::size_t>(),
+			[] (fpmas::api::model::GridAgent<fpmas::model::GridCell>* agent) {
+				((AgentPopulation*) agent)->setState(INFECTED);
+			}
 			);
-	for(auto agent : init_infected)
-		((AgentPopulation*) agent)->setState(INFECTED);
+	
+	this->graph().synchronize();
 
 	//Schedules AgentPopulation execution
 	this->scheduler().schedule(0.0, 1, this->loadBalancingJob());

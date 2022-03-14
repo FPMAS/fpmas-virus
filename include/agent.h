@@ -1,6 +1,7 @@
 #include "fpmas.h"
 #include "fpmas/model/serializer.h"
 #include "fpmas/model/model.h"
+#include <fpmas/random/distribution.h>
 
 using namespace fpmas::model;
 
@@ -9,13 +10,11 @@ FPMAS_DEFINE_GROUPS(ALIVE_GROUP, DEAD_GROUP);
 enum State { SUSCEPTIBLE, INFECTED, RECOVERED, DEAD};
 
 class AgentPopulation : public GridAgent<AgentPopulation> {
-	//Taux de rémission
-	
     private:
         static const MooreRange<MooreGrid<>> range;
-		State state;
 
     public:
+		State state;
 		static double alpha;
 		static double beta;
 		static double mortality_rate;
@@ -32,6 +31,11 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 		 * Constructor
 		 */
 		AgentPopulation(State state);
+
+		float random() {
+			static fpmas::random::UniformRealDistribution<float> rd_float(0, 1);
+			return rd_float(this->rd());
+		}
 
 		/**
 		 * Agent behavior.
@@ -68,4 +72,3 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 		static void to_json(nlohmann::json& j, const AgentPopulation * agent);
 		static AgentPopulation* from_json(const nlohmann::json& j);
 };
-
