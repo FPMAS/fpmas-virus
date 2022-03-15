@@ -2,10 +2,6 @@
 #include "output.h"
 #include "fpmas.h"
 #include "yaml-cpp/yaml.h"
-#include <fpmas/communication/communication.h>
-#include <fpmas/io/output.h>
-#include <fpmas/scheduler/scheduler.h>
-#include <fpmas/utils/macros.h>
 
 using fpmas::synchro::HardSyncMode;
 using fpmas::synchro::HardSyncModeWithGhostLink;
@@ -14,7 +10,9 @@ using fpmas::synchro::GlobalGhostMode;
 
 #define SYNC_MODE GlobalGhostMode
 
-#define AGENT_TYPES fpmas::model::GridCell::JsonBase, AgentPopulation::JsonBase
+#define AGENT_TYPES\
+	fpmas::model::GridCell::JsonBase,\
+	AgentPopulation::JsonBase
 
 FPMAS_JSON_SET_UP(AGENT_TYPES);
 

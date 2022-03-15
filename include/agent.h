@@ -1,7 +1,5 @@
 #include "fpmas.h"
-#include "fpmas/model/serializer.h"
-#include "fpmas/model/model.h"
-#include <fpmas/random/distribution.h>
+#include "config.h"
 
 using namespace fpmas::model;
 
@@ -10,10 +8,10 @@ FPMAS_DEFINE_GROUPS(ALIVE_GROUP, DEAD_GROUP);
 enum State { SUSCEPTIBLE, INFECTED, RECOVERED, DEAD};
 
 class AgentPopulation : public GridAgent<AgentPopulation> {
-    private:
-        static const MooreRange<MooreGrid<>> range;
+	private:
+		static const MooreRange<MooreGrid<>> range;
 
-    public:
+	public:
 		State state;
 		static double alpha;
 		static double beta;
@@ -37,16 +35,10 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 			return rd_float(this->rd());
 		}
 
-		/**
-		 * Agent behavior.
-		 */
-		void move_type_read();
-		
+		void move();
 
-		/**
-		 * Agent behavior written.
-		 */
-		void move_type_written();
+		template<InfectionMode mode>
+			void behavior();
 
 		/**
 		 * State of AgentPopulation
@@ -67,8 +59,21 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 		/**
 		 * Check if you die from infection, and if so, remove you from model
 		 */
-		void dying();
-		
-		static void to_json(nlohmann::json& j, const AgentPopulation * agent);
-		static AgentPopulation* from_json(const nlohmann::json& j);
+		void die();
+
+		static void to_json(nlohmann::json& j, const AgentPopulation * agent) {
+			j["s"] = agent->state;
+		}
+		static AgentPopulation* from_json(const nlohmann::json& j) {
+			auto agent = new AgentPopulation(
+					j.at("s").get<State>()
+					);
+			return agent;
+		}
+
 };
+
+template<>
+void AgentPopulation::behavior<InfectionMode::READ>();
+template<>
+void AgentPopulation::behavior<InfectionMode::WRITE>();

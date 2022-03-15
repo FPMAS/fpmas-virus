@@ -1,23 +1,18 @@
 #include "agent.h"
-#include "config.h"
-#include <fpmas/api/model/spatial/grid.h>
-#include <fpmas/model/spatial/grid.h>
-#include <fpmas/random/random.h>
 
 using namespace fpmas::model;
 
 template<template<typename> class SyncMode>
 class VirusModel : public GridModel<SyncMode>{
 	private:
-		InfectionMode infection_mode;
 		int grid_width;
 		int grid_height;
 
-		Behavior<AgentPopulation> move_behavior;
+		Behavior<AgentPopulation> agent_behavior;
 		fpmas::model::IdleBehavior dead_behavior;
 
 
-        fpmas::model::GridLoadBalancing grid_load_balancing;
+		fpmas::model::GridLoadBalancing grid_load_balancing;
 
 		void initInfected(std::size_t infected_count);
 
@@ -29,15 +24,20 @@ class VirusModel : public GridModel<SyncMode>{
 template<template<typename> class SyncMode>
 VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 	fpmas::model::GridModel<SyncMode>(grid_load_balancing),
-	infection_mode(config["infection_mode"].as<InfectionMode>()),
 	grid_width(config["grid"]["width"].as<int>()),
 	grid_height(config["grid"]["height"].as<int>()),
-	move_behavior(
-			(infection_mode == READ) ? &AgentPopulation::move_type_read
-			: &AgentPopulation::move_type_written
-			),
 	grid_load_balancing(grid_width, grid_height, fpmas::communication::WORLD)
 {
+	InfectionMode infection_mode
+		= config["infection_mode"].as<InfectionMode>();
+	switch(infection_mode) {
+		case READ:
+			agent_behavior = {&AgentPopulation::behavior<READ>};
+			break;
+		case WRITE:
+			agent_behavior = {&AgentPopulation::behavior<WRITE>};
+			break;
+	}
 	AgentPopulation::alpha = config["alpha"].as<float>();
 	AgentPopulation::beta = config["beta"].as<float>();
 	AgentPopulation::mortality_rate = config["mortality"].as<float>();
@@ -49,7 +49,7 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 	grid_builder.build(*this);
 
 	// Builds a new MoveAgentGroup associated to move_behavior
-	auto& move_group = this->buildMoveGroup(ALIVE_GROUP, move_behavior);
+	auto& agent_group = this->buildMoveGroup(ALIVE_GROUP, agent_behavior);
 	auto& die_group = this->buildGroup(DEAD_GROUP, dead_behavior);      
 
 	// Random uniform mapping for the built grid
@@ -58,29 +58,33 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 			config["agent_count"].as<std::size_t>()
 			);
 
-	//Build agent instances with a 'new AgentPopulation' statement
-	DefaultSpatialAgentFactory<AgentPopulation> factory; 
- 
 	GridAgentBuilder<> agent_builder;
 	//Initializes GridAgentExamples on the grid (distribued process)/
-	//All agents are automatically added on to the move_group
+	//All agents are automatically added on to the agent_group
 	agent_builder.build(
-			*this, {move_group}, factory, mapping
+			*this, // Build agents in this model
+			{agent_group}, // Add agents to agent_group
+			// Factory method
+			[infection_mode] () {
+			return new AgentPopulation;
+			},
+			mapping // Agent counts per cell
 			);
+
 	// Initializes infected agents
 	agent_builder.init_sample(
 			config["init_infected"].as<std::size_t>(),
 			[] (fpmas::api::model::GridAgent<fpmas::model::GridCell>* agent) {
-				((AgentPopulation*) agent)->setState(INFECTED);
+			((AgentPopulation*) agent)->setState(INFECTED);
 			}
 			);
-	
+
 	this->graph().synchronize();
 
 	//Schedules AgentPopulation execution
 	this->scheduler().schedule(0.0, 1, this->loadBalancingJob());
 
-	this->scheduler().schedule(0.1, 1, move_group.jobs());
+	this->scheduler().schedule(0.1, 1, agent_group.jobs());
 
 	this->scheduler().schedule(0.2, 1, die_group.jobs());
 }

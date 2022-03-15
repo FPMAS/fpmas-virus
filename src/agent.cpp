@@ -17,29 +17,7 @@ AgentPopulation::AgentPopulation(State state)
 	: state(state) {
 	}
 
-void AgentPopulation::move_type_read() {
-	// Local state
-	if(this->state == SUSCEPTIBLE) {
-		std::size_t infected_neighbors = 0;
-		for(auto agent : this->perceptions<AgentPopulation>())
-			// Read ghost
-			if(agent->getState() == INFECTED)
-				infected_neighbors++;
-		float infection_probability = 1 - std::pow(1-beta, infected_neighbors);
-
-		//Random
-		float random = this->random();
-		if(random <  infection_probability){
-			FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
-					"Agent %s gets infected", FPMAS_C_STR(this->node()->getId())
-					);
-			this->setState(INFECTED); // Write local
-		}
-	} else if(this->state == INFECTED){
-		this->recovery(); 
-	}
-	dying();
-
+void AgentPopulation::move() {
 	// Gets GraphCells currently in the agent mobility field.
 	// Here it represents the 8 Moore neighbor cells, and the current location
 	// cell.
@@ -54,38 +32,6 @@ void AgentPopulation::move_type_read() {
 			);
 	// Moves to this cell
 	this->moveTo(cell);
-}
-
-void AgentPopulation::move_type_written(){
-	//printAgent();
-	dying();
-
-	if(this->getState() != DEAD){
-		if(this->getState() == INFECTED){
-			for(auto agent : this->perceptions<AgentPopulation>()){
-				if(agent->getState() == SUSCEPTIBLE){
-					//Random
-					float random = this->random();
-
-					if(random < beta){
-						agent->setState(INFECTED);
-					}
-				}	
-			}
-			recovery();//Nombre de pas de temps après lequel il peut essayer de ne plus etre malade
-		}
-	
-
-		// Gets GraphCells currently in the agent mobility field.
-		// Here it represents the 8 Moore neighbor cells, and the current location
-		// cell.
-		auto cell = this->mobilityField()
-			.sort() // Sort cells according to their position: the mobility field is in the same order independently from the current distribution
-			.random(this->rd()); // Selects an item independently from the current distribution
-
-		// Moves to this cell
-		this->moveTo(cell);
-	}
 }
 
 State AgentPopulation::getState() {
@@ -108,11 +54,11 @@ void AgentPopulation::recovery(){
 		FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
 				"Agent %s recovers", FPMAS_C_STR(this->node()->getId())
 				);
-	 	this->setState(RECOVERED); //Acquire dans le setState
+		this->setState(RECOVERED); //Acquire dans le setState
 	} 
 }
 
-void AgentPopulation::dying(){
+void AgentPopulation::die(){
 	if(this->state == INFECTED){
 		float random = this->random();
 		if(random < mortality_rate){
@@ -126,14 +72,49 @@ void AgentPopulation::dying(){
 	}
 }
 
+template<>
+void AgentPopulation::behavior<InfectionMode::READ>() {
+	// Local state
+	if(this->state == SUSCEPTIBLE) {
+		std::size_t infected_neighbors = 0;
+		for(auto agent : this->perceptions<AgentPopulation>())
+			// Read ghost
+			if(agent->getState() == INFECTED)
+				infected_neighbors++;
+		float infection_probability = 1 - std::pow(1-beta, infected_neighbors);
 
-void AgentPopulation::to_json(nlohmann::json& j, const AgentPopulation * agent){
-	j["s"] = agent->state;
+		//Random
+		float random = this->random();
+		if(random <  infection_probability){
+			FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
+					"Agent %s gets infected", FPMAS_C_STR(this->node()->getId())
+					);
+			this->setState(INFECTED); // Write local
+		}
+	} else if(this->state == INFECTED){
+		this->recovery(); 
+	}
+	die();
+	move();
 }
 
-AgentPopulation* AgentPopulation::from_json(const nlohmann::json& j){
-	auto agent = new AgentPopulation(
-		j.at("s").get<State>()
-	);
-	return agent;
+template<>
+void AgentPopulation::behavior<InfectionMode::WRITE>(){
+	if(this->getState() != DEAD){
+		if(this->getState() == INFECTED){
+			for(auto agent : this->perceptions<AgentPopulation>()){
+				if(agent->getState() == SUSCEPTIBLE){
+					//Random
+					float random = this->random();
+
+					if(random < beta){
+						agent->setState(INFECTED);
+					}
+				}	
+			}
+			recovery();//Nombre de pas de temps après lequel il peut essayer de ne plus etre malade
+		}
+	}
+	die();
+	move();
 }
