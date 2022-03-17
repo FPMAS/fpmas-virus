@@ -3,12 +3,11 @@
 #include "fpmas.h"
 #include "yaml-cpp/yaml.h"
 
-using fpmas::synchro::HardSyncMode;
-using fpmas::synchro::HardSyncModeWithGhostLink;
+using fpmas::synchro::hard::ghost_link::HardSyncMode;
 using fpmas::synchro::GhostMode;
 using fpmas::synchro::GlobalGhostMode;
 
-#define SYNC_MODE GlobalGhostMode
+#define SYNC_MODE HardSyncMode
 
 #define AGENT_TYPES\
 	fpmas::model::GridCell::JsonBase,\
@@ -31,7 +30,9 @@ int main(int argc, char *argv[])
         //Schedules AgentPopulation exectution
         model.scheduler().schedule(0.3, 1, output.job());
 
-        // Runs the model for 10 iterations
+		std::cout << "init ok" << std::endl;
+
+		// Runs the model for 10 iterations
 		model.runtime().run(config["num_steps"].as<fpmas::scheduler::TimeStep>());
     }
     fpmas::finalize();

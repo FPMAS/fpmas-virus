@@ -35,20 +35,14 @@ void AgentPopulation::move() {
 }
 
 State AgentPopulation::getState() {
-	const AgentPopulation* ghost
-		= (const AgentPopulation*) (this->node()->mutex()->read().get());
-	State s = ghost->state;
-	this->node()->mutex()->releaseRead();
-	return s;
+	return this->state;
 }
 
 void AgentPopulation::setState(State s){
-	this->node()->mutex()->acquire();
 	this->state = s;
-	this->node()->mutex()->releaseAcquire();
 }
 
-void AgentPopulation::recovery(){
+void AgentPopulation::recover(){
 	float random = this->random();
 	if(random < alpha){
 		FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
@@ -59,28 +53,27 @@ void AgentPopulation::recovery(){
 }
 
 void AgentPopulation::die(){
-	if(this->state == INFECTED){
-		float random = this->random();
-		if(random < mortality_rate){
-			FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
-					"Agent %s dies", FPMAS_C_STR(this->node()->getId())
-					);
-			this->setState(DEAD);
-			this->model()->getGroup(DEAD_GROUP).add(this);
-			this->model()->getGroup(ALIVE_GROUP).remove(this);
-		}
+	float random = this->random();
+	if(random < mortality_rate){
+		FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
+				"Agent %s dies", FPMAS_C_STR(this->node()->getId())
+				);
+		this->setState(DEAD);
+		this->model()->getGroup(DEAD_GROUP).add(this);
+		this->model()->getGroup(ALIVE_GROUP).remove(this);
 	}
 }
 
 template<>
 void AgentPopulation::behavior<InfectionMode::READ>() {
-	// Local state
-	if(this->state == SUSCEPTIBLE) {
+	if(this->getState() == SUSCEPTIBLE) {
 		std::size_t infected_neighbors = 0;
-		for(auto agent : this->perceptions<AgentPopulation>())
-			// Read ghost
+		for(auto agent : this->perceptions<AgentPopulation>()) {
+			fpmas::model::ReadGuard read(agent);
+
 			if(agent->getState() == INFECTED)
 				infected_neighbors++;
+		}
 		float infection_probability = 1 - std::pow(1-beta, infected_neighbors);
 
 		//Random
@@ -89,32 +82,46 @@ void AgentPopulation::behavior<InfectionMode::READ>() {
 			FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
 					"Agent %s gets infected", FPMAS_C_STR(this->node()->getId())
 					);
+			fpmas::model::AcquireGuard acq(this);
 			this->setState(INFECTED); // Write local
 		}
-	} else if(this->state == INFECTED){
-		this->recovery(); 
 	}
-	die();
-	move();
+
+	fpmas::model::AcquireGuard acq(this);
+	if(this->getState() == INFECTED)
+		recover(); 
+	if(this->getState() == INFECTED)
+		die();
+	if(this->getState() != DEAD)
+		move();
 }
 
 template<>
 void AgentPopulation::behavior<InfectionMode::WRITE>(){
-	if(this->getState() != DEAD){
-		if(this->getState() == INFECTED){
-			for(auto agent : this->perceptions<AgentPopulation>()){
-				if(agent->getState() == SUSCEPTIBLE){
-					//Random
-					float random = this->random();
+	if(this->getState() == INFECTED){
+		for(auto agent : this->perceptions<AgentPopulation>()){
+			// Ensures each agent is infected at most by one agent
+			fpmas::model::AcquireGuard acquire(agent);
+			if(agent->getState() == SUSCEPTIBLE){
+				float random = this->random();
 
-					if(random < beta){
-						agent->setState(INFECTED);
-					}
-				}	
-			}
-			recovery();//Nombre de pas de temps après lequel il peut essayer de ne plus etre malade
+				if(random < beta){
+					FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
+							"Agent %s infects %s",
+							FPMAS_C_STR(this->node()->getId()),
+							FPMAS_C_STR(agent->node()->getId())
+							);
+					agent->setState(INFECTED);
+				}
+			}	
 		}
 	}
-	die();
-	move();
+
+	fpmas::model::AcquireGuard acq(this);
+	if(this->getState() == INFECTED)
+		recover();
+	if(this->getState() == INFECTED)
+		die();
+	if(this->getState() != DEAD)
+		move();
 }

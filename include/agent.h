@@ -1,3 +1,6 @@
+#ifndef VIRUS_AGENT_H
+#define VIRUS_AGENT_H
+
 #include "fpmas.h"
 #include "config.h"
 
@@ -10,9 +13,9 @@ enum State { SUSCEPTIBLE, INFECTED, RECOVERED, DEAD};
 class AgentPopulation : public GridAgent<AgentPopulation> {
 	private:
 		static const MooreRange<MooreGrid<>> range;
+		State state;
 
 	public:
-		State state;
 		static double alpha;
 		static double beta;
 		static double mortality_rate;
@@ -53,7 +56,7 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 		/**
 		 * Allows to test if you pass from State Infected to State Recovered
 		 */
-		void recovery();
+		void recover();
 
 
 		/**
@@ -77,3 +80,4 @@ template<>
 void AgentPopulation::behavior<InfectionMode::READ>();
 template<>
 void AgentPopulation::behavior<InfectionMode::WRITE>();
+#endif
