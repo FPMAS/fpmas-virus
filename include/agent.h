@@ -46,7 +46,7 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 		/**
 		 * State of AgentPopulation
 		 */
-		State getState();
+		State getState() const;
 
 		/**
 		 * Change State of AgentPopulation
@@ -64,20 +64,26 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 		 */
 		void die();
 
-		static void to_json(nlohmann::json& j, const AgentPopulation * agent) {
-			j["s"] = agent->state;
-		}
-		static AgentPopulation* from_json(const nlohmann::json& j) {
-			auto agent = new AgentPopulation(
-					j.at("s").get<State>()
-					);
-			return agent;
-		}
-
+		static std::size_t size(
+				const fpmas::io::datapack::ObjectPack& p,
+				const AgentPopulation* agent);
+		static void to_datapack(
+				fpmas::io::datapack::ObjectPack& p,
+				const AgentPopulation* agent);
+		static AgentPopulation* from_datapack(const fpmas::io::datapack::ObjectPack& p);
 };
 
 template<>
 void AgentPopulation::behavior<InfectionMode::READ>();
 template<>
 void AgentPopulation::behavior<InfectionMode::WRITE>();
+
+namespace fpmas { namespace io { namespace datapack {
+	template<>
+		struct Serializer<State> {
+			static std::size_t size(const ObjectPack& o, const State& s);
+			static void to_datapack(ObjectPack& o, const State& s);
+			static State from_datapack(const ObjectPack& o);
+		};
+}}}
 #endif

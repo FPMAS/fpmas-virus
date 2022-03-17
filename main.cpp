@@ -13,7 +13,7 @@ using fpmas::synchro::GlobalGhostMode;
 	fpmas::model::GridCell::JsonBase,\
 	AgentPopulation::JsonBase
 
-FPMAS_JSON_SET_UP(AGENT_TYPES);
+FPMAS_DATAPACK_SET_UP(AGENT_TYPES);
 
 int main(int argc, char *argv[])
 {

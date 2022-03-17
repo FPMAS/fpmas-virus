@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdlib>
+#include <fpmas/io/datapack.h>
 #include <fpmas/random/distribution.h>
 #include <fpmas/utils/log.h>
 
@@ -34,7 +35,7 @@ void AgentPopulation::move() {
 	this->moveTo(cell);
 }
 
-State AgentPopulation::getState() {
+State AgentPopulation::getState() const {
 	return this->state;
 }
 
@@ -62,6 +63,21 @@ void AgentPopulation::die(){
 		this->model()->getGroup(DEAD_GROUP).add(this);
 		this->model()->getGroup(ALIVE_GROUP).remove(this);
 	}
+}
+
+std::size_t AgentPopulation::size(
+		const fpmas::io::datapack::ObjectPack &p, const AgentPopulation *agent) {
+	return p.size(agent->getState());
+}
+
+void AgentPopulation::to_datapack(
+		fpmas::io::datapack::ObjectPack &p, const AgentPopulation *agent) {
+	p.put(agent->getState());
+}
+
+AgentPopulation* AgentPopulation::from_datapack(
+		const fpmas::io::datapack::ObjectPack &p) {
+	return new AgentPopulation(p.get<State>());
 }
 
 template<>
@@ -125,3 +141,19 @@ void AgentPopulation::behavior<InfectionMode::WRITE>(){
 	if(this->getState() != DEAD)
 		move();
 }
+
+namespace fpmas { namespace io { namespace datapack {
+	std::size_t Serializer<State>::size(const ObjectPack&, const State&) {
+		return sizeof(State);
+	}
+
+	void Serializer<State>::to_datapack(ObjectPack& o, const State& s) {
+		o.write(&s, sizeof(State));
+	}
+
+	State Serializer<State>::from_datapack(const ObjectPack& o) {
+		State s;
+		o.read(&s, sizeof(State));
+		return s;
+	}
+}}}
