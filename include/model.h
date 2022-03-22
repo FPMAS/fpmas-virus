@@ -72,7 +72,7 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 			);
 
 	// Initializes infected agents
-	agent_builder.init_sample(
+	agent_builder.initSample(
 			config["init_infected"].as<std::size_t>(),
 			[] (fpmas::api::model::GridAgent<fpmas::model::GridCell>* agent) {
 			((AgentPopulation*) agent)->setState(INFECTED);
