@@ -17,6 +17,10 @@ FPMAS_DATAPACK_SET_UP(AGENT_TYPES);
 
 int main(int argc, char *argv[])
 {
+	if(argc > 2) {
+		unsigned long seed = std::stoul({argv[2]});
+		fpmas::seed(seed);
+	}
     
     FPMAS_REGISTER_AGENT_TYPES(AGENT_TYPES);
     fpmas::init(argc, argv);

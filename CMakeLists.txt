@@ -20,3 +20,5 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(yaml-cpp)
 
 target_link_libraries(${PROJECT_NAME} fpmas::fpmas yaml-cpp)
+
+add_executable(seed seed.cpp)
