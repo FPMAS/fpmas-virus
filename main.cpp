@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
 				"output." + std::to_string(fpmas::communication::WORLD.getSize())
 				+ ".csv");
 
+		init_model.start();
 		fpmas::api::model::Model* model;
 		switch(config["sync_mode"].as<SyncMode>()) {
 			case GHOST:
@@ -54,9 +55,9 @@ int main(int argc, char *argv[])
 				model = new VirusModel<HardSyncMode>(config);
 				break;
 		};
-		init_model.start();
-		ModelOutput output(*model, file);
 		init_model.stop();
+
+		ModelOutput output(*model, file);
 
         model->scheduler().schedule(0.3, 1, output.job());
 
