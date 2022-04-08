@@ -9,6 +9,7 @@ add_executable(${PROJECT_NAME}
 	main.cpp
 	src/agent.cpp
 	src/output.cpp
+	src/perf.cpp
 	)
 
 include(FetchContent)
