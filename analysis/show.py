@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import numpy as np
 import csv
 from pathlib import Path
 import argparse
@@ -38,11 +37,6 @@ def plot(output_files, rows=-1, columns=1, fontsize="medium"):
         plt.plot(data[0], data[3], label="Removed")
         plt.plot(data[0], data[4], label="Dead")
         plt.xlabel("Time Step", fontsize=fontsize)
-        plt.xticks(np.arange(data[0][0], data[0][-1], step=100),
-                fontsize=fontsize)
-        # max_y = data[1][0] + data[2][0] + data[3][0] + data[4][0]
-        # step_y = max_y / 10
-        # plt.yticks(np.arange(0, max_y, step=step_y), fontsize=fontsize)
         plt.ylabel("Global Population", fontsize=fontsize)
         index+=1
         plt.legend(fontsize=fontsize)
