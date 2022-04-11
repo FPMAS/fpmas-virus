@@ -26,9 +26,7 @@ int main(int argc, char *argv[])
     fpmas::init(argc, argv);
     {
         YAML::Node config = YAML::LoadFile(argv[1]);
-		fpmas::io::FileOutput file(
-				"output." + std::to_string(fpmas::communication::WORLD.getSize())
-				+ ".csv");
+		fpmas::io::FileOutput file("output.csv");
 
 		fpmas::api::model::Model* model;
 		switch(config["sync_mode"].as<SyncMode>()) {
