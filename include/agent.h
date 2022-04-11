@@ -16,8 +16,8 @@ class AgentPopulation : public GridAgent<AgentPopulation> {
 		State state;
 
 	public:
-		static double alpha;
-		static double beta;
+		static double recover_rate;
+		static double infection_rate;
 		static double mortality_rate;
 
 		FPMAS_MOBILITY_RANGE(range);

@@ -1,11 +1,22 @@
+# Number of time steps to run
 num_steps: 100
+# Initial agent count
 agent_count: 1000
+# Initial infected agents count, randomly distributed in the environment
 init_infected: 1
+# Infection mode: READ or WRITE
 infection_mode: READ
+# Synchronization mode: HARD_SYNC, GHOST, GLOBAL_GHOST
 sync_mode: GHOST
+# Grid dimensions
 grid:
   width: 50
   height: 50
-alpha: 0.035
-beta: 0.4
-mortality: 0.005
+
+# Recover probability (alpha)
+recover_rate: 0.035
+# Probability of infection in a contact between an INFECTED and a SUSCEPTIBLE
+# (beta / average contact by time step)
+infection_rate: 0.4
+# Probability to die at each time step when INFECTED (gamma)
+mortality_rate: 0.005

@@ -7,8 +7,8 @@
 #include "model.h"
 
 const MooreRange<MooreGrid<>> AgentPopulation::range(1);
-double AgentPopulation::alpha = 0.0;
-double AgentPopulation::beta = 0.0;
+double AgentPopulation::recover_rate = 0.0;
+double AgentPopulation::infection_rate = 0.0;
 double AgentPopulation::mortality_rate = 0;
 
 AgentPopulation::AgentPopulation() : AgentPopulation(SUSCEPTIBLE) {
@@ -45,7 +45,7 @@ void AgentPopulation::setState(State s){
 
 void AgentPopulation::recover(){
 	float random = this->random();
-	if(random < alpha){
+	if(random < recover_rate){
 		FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
 				"Agent %s recovers", FPMAS_C_STR(this->node()->getId())
 				);
@@ -90,7 +90,7 @@ void AgentPopulation::behavior<InfectionMode::READ>() {
 			if(agent->getState() == INFECTED)
 				infected_neighbors++;
 		}
-		float infection_probability = 1 - std::pow(1-beta, infected_neighbors);
+		float infection_probability = 1 - std::pow(1-infection_rate, infected_neighbors);
 
 		//Random
 		float random = this->random();
@@ -121,7 +121,7 @@ void AgentPopulation::behavior<InfectionMode::WRITE>(){
 			if(agent->getState() == SUSCEPTIBLE){
 				float random = this->random();
 
-				if(random < beta){
+				if(random < infection_rate){
 					FPMAS_LOGI(fpmas::communication::WORLD.getRank(), "AGENT",
 							"Agent %s infects %s",
 							FPMAS_C_STR(this->node()->getId()),

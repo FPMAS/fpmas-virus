@@ -38,9 +38,9 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 			agent_behavior = {&AgentPopulation::behavior<WRITE>};
 			break;
 	}
-	AgentPopulation::alpha = config["alpha"].as<float>();
-	AgentPopulation::beta = config["beta"].as<float>();
-	AgentPopulation::mortality_rate = config["mortality"].as<float>();
+	AgentPopulation::recover_rate = config["recover_rate"].as<float>();
+	AgentPopulation::infection_rate = config["infection_rate"].as<float>();
+	AgentPopulation::mortality_rate = config["mortality_rate"].as<float>();
 
 	//Defines a grid builder, that will build a grid of size height,width
 	fpmas::model::MooreGridBuilder<> grid_builder(grid_width, grid_height);
