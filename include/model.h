@@ -85,6 +85,4 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 	this->scheduler().schedule(0.0, 1, this->loadBalancingJob());
 
 	this->scheduler().schedule(0.1, 1, agent_group.jobs());
-
-	this->scheduler().schedule(0.2, 1, die_group.jobs());
 }
