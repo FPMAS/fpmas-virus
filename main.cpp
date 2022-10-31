@@ -2,6 +2,9 @@
 #include "output.h"
 #include "fpmas.h"
 #include "yaml-cpp/yaml.h"
+#include "CLI/App.hpp"
+#include "CLI/Formatter.hpp"
+#include "CLI/Config.hpp"
 
 using fpmas::synchro::hard::ghost_link::HardSyncMode;
 using fpmas::synchro::GhostMode;
@@ -17,12 +20,18 @@ FPMAS_DATAPACK_SET_UP(AGENT_TYPES);
 
 int main(int argc, char *argv[])
 {
-	if(argc > 2) {
-		unsigned long seed = std::stoul({argv[2]});
-		fpmas::seed(seed);
-	}
-    
     FPMAS_REGISTER_AGENT_TYPES(AGENT_TYPES);
+
+	CLI::App app("fpmas-metamodel");
+	std::string config_file;
+	app.add_option("config_file", config_file, "fpmas-virus configuration file")
+		->required();
+	unsigned long seed = fpmas::random::default_seed;
+	app.add_option("-s,--seed", seed, "Random seed");
+
+	CLI11_PARSE(app, argc, argv);
+
+	fpmas::seed(seed);
     fpmas::init(argc, argv);
     {
         YAML::Node config = YAML::LoadFile(argv[1]);

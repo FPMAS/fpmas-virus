@@ -13,12 +13,20 @@ add_executable(${PROJECT_NAME}
 
 include(FetchContent)
 FetchContent_Declare(
-  yaml-cpp
-  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-  GIT_TAG        yaml-cpp-0.7.0
-)
-FetchContent_MakeAvailable(yaml-cpp)
+	yaml-cpp
+	GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+	GIT_TAG        yaml-cpp-0.7.0
+	)
+FetchContent_Declare(
+	cli11
+	GIT_REPOSITORY https://github.com/CLIUtils/CLI11
+	GIT_TAG        v2.2.0
+	)
 
-target_link_libraries(${PROJECT_NAME} fpmas::fpmas yaml-cpp)
+FetchContent_MakeAvailable(yaml-cpp cli11)
+
+target_link_libraries(${PROJECT_NAME} fpmas::fpmas
+	yaml-cpp::yaml-cpp
+	CLI11::CLI11)
 
 add_executable(seed seed.cpp)
