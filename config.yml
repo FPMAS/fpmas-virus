@@ -13,10 +13,10 @@ grid:
   width: 50
   height: 50
 
-# Recover probability (alpha)
+# Probability to recover at each time step when INFECTED (alpha)
 recover_rate: 0.035
 # Probability of infection in a contact between an INFECTED and a SUSCEPTIBLE
-# (beta / average contact by time step)
+# agent (beta / average contact by time step)
 infection_rate: 0.4
 # Probability to die at each time step when INFECTED (gamma)
 mortality_rate: 0.005
