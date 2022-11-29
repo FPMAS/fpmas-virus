@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(fpmas-virus VERSION 1.0)
+project(fpmas-virus VERSION 1.1)
 
 find_package(fpmas 1.6 REQUIRED)
 
