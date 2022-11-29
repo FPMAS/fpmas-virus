@@ -10,8 +10,6 @@ using fpmas::synchro::hard::ghost_link::HardSyncMode;
 using fpmas::synchro::GhostMode;
 using fpmas::synchro::GlobalGhostMode;
 
-#define SYNC_MODE HardSyncMode
-
 #define AGENT_TYPES\
 	fpmas::model::GridCell::JsonBase,\
 	AgentPopulation::JsonBase
@@ -49,10 +47,12 @@ int main(int argc, char *argv[])
 				model = new VirusModel<HardSyncMode>(config);
 				break;
 		};
+		// Configures CSV output to output.csv
 		ModelOutput output(*model, file);
+		// Schedules output at the end of each time step
         model->scheduler().schedule(0.3, 1, output.job());
 
-		// Runs the model for 10 iterations
+		// Runs the model for num_steps iterations
 		model->runtime().run(config["num_steps"].as<fpmas::scheduler::TimeStep>());
 
 		delete model;

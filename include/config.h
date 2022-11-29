@@ -1,11 +1,46 @@
 #include "yaml-cpp/yaml.h"
 
+/**
+ * @file config.h
+ * Defines YAML configuration features.
+ */
+
+/**
+ * Defines the infection mode used by AgentPopulation::behavior().
+ */
 enum InfectionMode {
-	READ, WRITE
+
+	/**
+	 * No write operations between agents is performed so all SyncModes can
+	 * safely be used.
+	 */
+	READ,
+
+	/**
+	 * The WRITE mode might be more realistic, but requires the `HARD_SYNC` so
+	 * that write operations across processes can be performed.
+	 */
+	WRITE
 };
 
+/**
+ * Defines the FPMAS synchronization mode used to simulate the Virus model.
+ */
 enum SyncMode {
-	GHOST, GLOBAL_GHOST, HARD_SYNC
+	/**
+	 * Only DISTANT agents are read from a ghost copy.
+	 * Write operations across processes are not handled.
+	 */
+	GHOST,
+	/**
+	 * All agents are read from a ghost copy.
+	 * Write operations are not handled.
+	 */
+	GLOBAL_GHOST,
+	/**
+	 * DISTANT agents are read and written directly from distant processes.
+	 */
+	HARD_SYNC
 };
 
 namespace YAML {

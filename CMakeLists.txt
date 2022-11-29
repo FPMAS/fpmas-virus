@@ -30,3 +30,19 @@ target_link_libraries(${PROJECT_NAME} fpmas::fpmas
 	CLI11::CLI11)
 
 add_executable(seed seed.cpp)
+
+# Doxygen
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+	file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/docs)
+	set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/docs)
+	set(DOXYGEN_HTML_OUTPUT ".")
+	set(DOXYGEN_SORT_MEMBER_DOCS "NO")
+	set(DOXYGEN_HAVE_DOT "YES")
+	set(DOXYGEN_HIDE_FRIEND_COMPOUNDS "YES")
+	set(DOXYGEN_EXCLUDE_SYMBOLS [[YAML::*]])
+	
+	doxygen_add_docs(doc
+		${CMAKE_CURRENT_SOURCE_DIR}/include
+		)
+endif()

@@ -18,6 +18,11 @@ AgentPopulation::AgentPopulation(State state)
 	: state(state) {
 	}
 
+float AgentPopulation::random() {
+	static fpmas::random::UniformRealDistribution<float> rd_float(0, 1);
+	return rd_float(this->rd());
+}
+
 void AgentPopulation::move() {
 	// Gets GraphCells currently in the agent mobility field.
 	// Here it represents the 8 Moore neighbor cells, and the current location
@@ -63,21 +68,6 @@ void AgentPopulation::die(){
 		this->model()->getGroup(DEAD_GROUP).add(this);
 		this->model()->getGroup(ALIVE_GROUP).remove(this);
 	}
-}
-
-std::size_t AgentPopulation::size(
-		const fpmas::io::datapack::ObjectPack &p, const AgentPopulation *agent) {
-	return p.size(agent->getState());
-}
-
-void AgentPopulation::to_datapack(
-		fpmas::io::datapack::ObjectPack &p, const AgentPopulation *agent) {
-	p.put(agent->getState());
-}
-
-AgentPopulation* AgentPopulation::from_datapack(
-		const fpmas::io::datapack::ObjectPack &p) {
-	return new AgentPopulation(p.get<State>());
 }
 
 template<>
@@ -140,6 +130,21 @@ void AgentPopulation::behavior<InfectionMode::WRITE>(){
 		die();
 	if(this->getState() != DEAD)
 		move();
+}
+
+std::size_t AgentPopulation::size(
+		const fpmas::io::datapack::ObjectPack &p, const AgentPopulation *agent) {
+	return p.size(agent->getState());
+}
+
+void AgentPopulation::to_datapack(
+		fpmas::io::datapack::ObjectPack &p, const AgentPopulation *agent) {
+	p.put(agent->getState());
+}
+
+AgentPopulation* AgentPopulation::from_datapack(
+		const fpmas::io::datapack::ObjectPack &p) {
+	return new AgentPopulation(p.get<State>());
 }
 
 namespace fpmas { namespace io { namespace datapack {

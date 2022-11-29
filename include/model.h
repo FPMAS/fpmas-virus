@@ -2,21 +2,57 @@
 
 using namespace fpmas::model;
 
+/**
+ * @file model.h
+ * Virus model implementation.
+ */
+
+/**
+ * Virus model definition.
+ *
+ * The model is based on a grid on which agents are uniformly placed at the
+ * initialization of the model. A subset of randomly selected agents is also
+ * INFECTED.
+ *
+ * The model then consists in executing the AgentPopulation::behavior() at each
+ * time step.
+ *
+ * The model is deterministically initialized, so that the initial state of the
+ * model only depends on the provided seed but not on the current distribution
+ * or the process count. If the `GLOBAL_GHOST` synchronization is used, the
+ * complete model execution is deterministic and independent from the process
+ * count, but not with the `HARD_SYNC` or `GHOST` modes.
+ */
 template<template<typename> class SyncMode>
 class VirusModel : public GridModel<SyncMode>{
 	private:
 		int grid_width;
 		int grid_height;
 
+		/*
+		 * When alive, agents in the ALIVE_GROUP execute
+		 * AgentPopulation::behavior().
+		 */
 		Behavior<AgentPopulation> agent_behavior;
+		/*
+		 * When dead, agents do nothing but are still contained in the
+		 * DEAD_GROUP.
+		 */
 		fpmas::model::IdleBehavior dead_behavior;
 
-
+		/*
+		 * The model uses the GridLoadBalancing, that is the most efficient in
+		 * this case (grid based model with a uniform agent distribution).
+		 */
 		fpmas::model::GridLoadBalancing grid_load_balancing;
 
-		void initInfected(std::size_t infected_count);
-
 	public:
+		/**
+		 * VirusModel constructor.
+		 *
+		 * See the example config.yml file and the README.md documentation for
+		 * more information about how the model is configured.
+		 */
 		VirusModel(const YAML::Node& config);
 
 };
@@ -48,8 +84,9 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 	//Builds the grid (distributed process)
 	grid_builder.build(*this);
 
-	// Builds a new MoveAgentGroup associated to move_behavior
+	// Builds a new MoveAgentGroup associated to agent_behavior
 	auto& agent_group = this->buildMoveGroup(ALIVE_GROUP, agent_behavior);
+	// Agents do nothing in this group
 	auto& die_group = this->buildGroup(DEAD_GROUP, dead_behavior);      
 
 	// Random uniform mapping for the built grid
@@ -71,7 +108,7 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 			mapping // Agent counts per cell
 			);
 
-	// Initializes infected agents
+	//Deterministically initializes `init_infected` agents on the grid
 	agent_builder.initSample(
 			config["init_infected"].as<std::size_t>(),
 			[] (fpmas::api::model::GridAgent<fpmas::model::GridCell>* agent) {
@@ -81,8 +118,9 @@ VirusModel<SyncMode>::VirusModel(const YAML::Node& config) :
 
 	this->graph().synchronize();
 
-	//Schedules AgentPopulation execution
+	// Schedules load balancing at each time step
 	this->scheduler().schedule(0.0, 1, this->loadBalancingJob());
 
+	//Schedules AgentPopulation execution at each time step
 	this->scheduler().schedule(0.1, 1, agent_group.jobs());
 }
