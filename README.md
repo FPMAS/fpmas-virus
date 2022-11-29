@@ -23,7 +23,7 @@ The execution scheme is such as agents independently execute the 4 behaviors in
 a row, and a global synchronization is applied only when all agents have
 executed all the behaviors, marking the end of the current time step. How the
 infection propagates might depend on the selected infection and synchronization
-mode.
+modes.
 
 
 ## Build
@@ -49,7 +49,7 @@ Model parameters are described in the [config.yml](blob/master/config.yml)
 file. Here we focus on the `infection_mode` and `sync_mode` parameters.
 - `infection_mode`: Defines the infection behavior
   - `WRITE`: each infected agent _acquires_ its neighbors and infect them with
-	a probability _infection_rate_. Works only with `HARD_SYNC` mode.
+	a probability _infection_rate_. Only works with the `HARD_SYNC` mode.
   - `READ`: read only infection. Each agent performs `N` Bernoulli experiments
 	of parameter _infection_rate_, where `N` it the count of `INFECTED` agents
 	in its neighborhood: if at least one experiment succeeds, the agent gets
@@ -70,7 +70,7 @@ file. Here we focus on the `infection_mode` and `sync_mode` parameters.
 The model can be run with the following command:
 
 ```
-mpiexec -n <N> ./fpmas-virus <config_file> [seed]
+mpiexec -n <N> ./fpmas-virus <config_file> [-s seed]
 ```
 - `N`: processes count
 - `config_file`: a `.yml` configuration file
@@ -89,14 +89,16 @@ The generated `output.csv` file contains the following fields:
 
 ## Analysis
 
-Provided `python` scripts in the [analysis](tree/master/analysis) folder can be
-used to show models outputs.
-
-See `python analysis/show.py -h` for options.
-
-## Example
-
-Results of the model obtained with the default
-[config.yml](blob/master/config.yml) file and the default seed:
+Python script used to plot results is not provided in this repository any more,
+as it was heavily dependent on the experimental context. Here is however an
+example plot that can be obtained from the CSV output of a model simulated with
+the default [config.yml](blob/master/config.yml) file and the default seed:
 ![SIR output](sir.png)
 
+# Contact
+
+For more information about this model or its implementation, please contact:
+- Paul Breugnot (developer): paul.breugnot@univ-fcomte.fr
+- Laurent Philippe (supervisor): laurent.philippe@univ-fcomte.fr
+- Bénédicte Herrmann (supervisor): benedicte.herrmann@univ-fcomte.fr
+- Christophe Lang (supervisor): christophe.lang@univ-fcomte.fr
