@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(fpmas-virus VERSION 1.0)
 
-find_package(fpmas 1.5 REQUIRED)
+find_package(fpmas 1.6 REQUIRED)
 
 include_directories(include)
 add_executable(${PROJECT_NAME}
